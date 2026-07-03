@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financial Risk Analysis System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF1F0;
+    --grid-line:#D6DCDA;
+    --panel:#FBFCFB;
+    --ink:#1F3A3A;
+    --steel:#2C5561;
+    --muted:#66756F;
+    --low:#2F8F5B;
+    --low-soft:#DFF0E6;
+    --med:#D98F2B;
+    --med-soft:#F7E9D3;
+    --high:#C1443C;
+    --high-soft:#F6DEDB;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      linear-gradient(var(--grid-line) 1px, transparent 1px) 0 0/32px 32px,
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px) 0 0/32px 32px,
+      var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding:36px 24px 90px;
+    min-height:100vh;
+  }
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:14px;
+    padding-bottom:16px;
+    border-bottom:2px solid var(--ink);
+    margin-bottom:26px;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.16em;
+    text-transform:uppercase;
+    color:var(--steel);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:30px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .session{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    text-align:right;
+    line-height:1.6;
+  }
+  .session b{color:var(--ink);}
+
+  .disclaimer{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    background:var(--panel);
+    border:1px solid var(--grid-line);
+    border-left:3px solid var(--steel);
+    padding:10px 14px;
+    margin-bottom:28px;
+  }
+
+  /* Instrument row: gauge + metric cards */
+  .instrument-row{
+    display:grid;
+    grid-template-columns: 280px 1fr;
+    gap:20px;
+    margin-bottom:24px;
+  }
+  @media (max-width:760px){ .instrument-row{grid-template-columns:1fr;} }
+
+  .gauge-panel{
+    background:var(--panel);
+    border:1.5px solid var(--ink);
+    padding:18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .gauge-title{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    align-self:flex-start;
+    margin-bottom:6px;
+  }
+  .gauge-score{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:15px;
+    margin-top:4px;
+    letter-spacing:0.02em;
+  }
+  #needle{ transform-origin: 100px 100px; transition: transform .5s cubic-bezier(.4,1.4,.4,1); }
+
+  .metrics-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:14px;
+  }
+  @media (max-width:520px){ .metrics-grid{grid-template-columns:1fr;} }
+  .metric-card{
+    background:var(--panel);
+    border:1.5px solid var(--ink);
+    padding:14px 16px;
+  }
+  .metric-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .metric-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:600;
+    font-size:22px;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-sub{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:3px;
+  }
+
+  /* Panels */
+  section.panel{
+    background:var(--panel);
+    border:1.5px solid var(--ink);
+    margin-bottom:22px;
+  }
+  .panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:11px 16px;
+    background:var(--ink);
+    color:var(--bg);
+  }
+  .panel-head h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:15px;
+    font-weight:600;
+    margin:0;
+  }
+  .panel-body{padding:18px;}
+
+  .cols2{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:24px;
+  }
+  @media (max-width:760px){ .cols2{grid-template-columns:1fr;} }
+
+  /* Holdings table */
+  table.holdings{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  table.holdings th{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    text-align:left;
+    padding:0 8px 8px 0;
+    border-bottom:1px solid var(--ink);
+  }
+  table.holdings td{
+    padding:8px 8px 8px 0;
+    border-bottom:1px dashed var(--grid-line);
+    font-family:'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  table.holdings td.name-cell{font-family:'IBM Plex Sans', sans-serif; font-weight:500;}
+  .risk-tag{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    padding:2px 7px;
+    border-radius:20px;
+    text-transform:uppercase;
+  }
+  .risk-tag.low{background:var(--low-soft); color:var(--low);}
+  .risk-tag.med{background:var(--med-soft); color:var(--med);}
+  .risk-tag.high{background:var(--high-soft); color:var(--high);}
+  .row-del{
+    background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;
+  }
+  .row-del:hover{color:var(--high);}
+  .empty-note{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+    padding:16px 0;
+  }
+
+  /* Forms */
+  form.grid-form{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:16px;
+  }
+  form.grid-form.settings{grid-template-columns:repeat(3,1fr);}
+  @media (max-width:520px){ form.grid-form.settings{grid-template-columns:1fr 1fr;} }
+  label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    display:block;
+    margin-bottom:4px;
+  }
+  input{
+    width:100%;
+    border:1px solid var(--grid-line);
+    background:#fff;
+    padding:8px 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--ink);
+  }
+  input:focus{ outline:2px solid var(--steel); outline-offset:1px; }
+  .form-span2{grid-column:span 2;}
+  button.primary{
+    grid-column:1/-1;
+    border:1.5px solid var(--ink);
+    background:var(--ink);
+    color:var(--bg);
+    padding:10px 14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  button.primary:hover{background:var(--steel);}
+
+  /* Risk contribution bars */
+  .contrib-row{margin-bottom:12px;}
+  .contrib-top{
+    display:flex;
+    justify-content:space-between;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    margin-bottom:4px;
+  }
+  .contrib-track{ height:7px; background:var(--grid-line); }
+  .contrib-fill{ height:100%; background:var(--steel); }
+
+  /* Allocation donut */
+  .donut-wrap{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+  .donut{
+    width:150px;height:150px;border-radius:50%;
+    flex-shrink:0;
+  }
+  .legend{ font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .legend-item{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .swatch{ width:10px;height:10px;flex-shrink:0; }
+
+  .settings-note{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:8px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Risk Instrument Panel</p>
+      <h1>Financial Risk Analysis System</h1>
+    </div>
+    <div class="session" id="sessionInfo"></div>
+  </header>
+
+  <div class="disclaimer">
+    NOTE — This tool applies simplified, parametric risk formulas to the assumptions you enter. It is an educational base project, not investment advice, and does not use live market data.
+  </div>
+
+  <div class="instrument-row">
+    <div class="gauge-panel">
+      <div class="gauge-title">Portfolio Risk Gauge</div>
+      <svg viewBox="0 0 200 120" width="220">
+        <path d="M 20 100 A 80 80 0 0 1 62 27" fill="none" stroke="#2F8F5B" stroke-width="14" stroke-linecap="butt"/>
+        <path d="M 62 27 A 80 80 0 0 1 138 27" fill="none" stroke="#D98F2B" stroke-width="14" stroke-linecap="butt"/>
+        <path d="M 138 27 A 80 80 0 0 1 180 100" fill="none" stroke="#C1443C" stroke-width="14" stroke-linecap="butt"/>
+        <g id="needle">
+          <line x1="100" y1="100" x2="100" y2="34" stroke="#1F3A3A" stroke-width="3"/>
+          <circle cx="100" cy="100" r="6" fill="#1F3A3A"/>
+        </g>
+        <text x="20" y="115" font-family="IBM Plex Mono" font-size="8" fill="#66756F">LOW</text>
+        <text x="90" y="18" font-family="IBM Plex Mono" font-size="8" fill="#66756F">MED</text>
+        <text x="158" y="115" font-family="IBM Plex Mono" font-size="8" fill="#66756F">HIGH</text>
+      </svg>
+      <div class="gauge-score" id="gaugeScoreLabel">— NO DATA —</div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Portfolio Value</div>
+        <div class="metric-value" id="mValue">$0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Expected Return</div>
+        <div class="metric-value" id="mReturn">0.0%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Annual Volatility</div>
+        <div class="metric-value" id="mVol">0.0%</div>
+        <div class="metric-sub" id="mVolSub">σ portfolio</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Sharpe Ratio</div>
+        <div class="metric-value" id="mSharpe">0.00</div>
+        <div class="metric-sub">vs. risk-free rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Value at Risk (95%)</div>
+        <div class="metric-value" id="mVar95">$0</div>
+        <div class="metric-sub">1-year, parametric</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Value at Risk (99%)</div>
+        <div class="metric-value" id="mVar99">$0</div>
+        <div class="metric-sub">1-year, parametric</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols2">
+    <section class="panel">
+      <div class="panel-head"><h2>Holdings</h2></div>
+      <div class="panel-body">
+        <table class="holdings">
+          <thead>
+            <tr><th>Asset</th><th>Value</th><th>Return</th><th>Vol.</th><th>Risk</th><th></th></tr>
+          </thead>
+          <tbody id="holdingsBody"></tbody>
+        </table>
+        <div class="empty-note" id="holdingsEmpty" style="display:none;">No holdings yet — add one below.</div>
+
+        <form class="grid-form" id="holdingForm">
+          <div class="form-span2">
+            <label for="hName">Asset name</label>
+            <input type="text" id="hName" placeholder="e.g. Tech Equity Fund" required>
+          </div>
+          <div>
+            <label for="hValue">Position value ($)</label>
+            <input type="number" id="hValue" min="0" step="0.01" required>
+          </div>
+          <div>
+            <label for="hReturn">Expected return (%/yr)</label>
+            <input type="number" id="hReturn" step="0.1" required>
+          </div>
+          <div class="form-span2">
+            <label for="hVol">Volatility, annualized (%)</label>
+            <input type="number" id="hVol" min="0" step="0.1" required>
+          </div>
+          <button type="submit" class="primary">Add Holding</button>
+        </form>
+      </div>
+    </section>
+
+    <div>
+      <section class="panel">
+        <div class="panel-head"><h2>Risk Contribution</h2></div>
+        <div class="panel-body" id="contribBody">
+          <div class="empty-note">Add holdings to see risk contribution.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Allocation</h2></div>
+        <div class="panel-body">
+          <div class="donut-wrap">
+            <div class="donut" id="donutChart" style="background: conic-gradient(var(--grid-line) 0 100%);"></div>
+            <div class="legend" id="donutLegend">No holdings yet.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Model Assumptions</h2></div>
+    <div class="panel-body">
+      <form class="grid-form settings" id="settingsForm">
+        <div>
+          <label for="riskFree">Risk-free rate (%)</label>
+          <input type="number" id="riskFree" step="0.1" value="3.0">
+        </div>
+        <div>
+          <label for="avgCorr">Avg. cross-asset correlation</label>
+          <input type="number" id="avgCorr" step="0.05" min="0" max="1" value="0.3">
+        </div>
+        <div>
+          <label for="confLevel">Confidence context</label>
+          <input type="text" id="confLevel" value="95% / 99%" disabled>
+        </div>
+        <button type="submit" class="primary">Recalculate</button>
+      </form>
+      <div class="settings-note">Correlation is applied as a single blended assumption across all holdings — a simplification for this base version. A fuller build would use a pairwise correlation matrix.</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'fras-state-v1';
+  let state = {
+    holdings: [
+      { id:'h1', name:'Broad Market Equity', value: 50000, ret: 8, vol: 16 },
+      { id:'h2', name:'Corporate Bonds', value: 30000, ret: 4, vol: 6 },
+      { id:'h3', name:'Emerging Markets', value: 20000, ret: 10, vol: 24 }
+    ],
+    riskFree: 3.0,
+    avgCorr: 0.3
+  };
+
+  const sessionInfo = document.getElementById('sessionInfo');
+  const now = new Date();
+  sessionInfo.innerHTML = `SESSION <b>${now.toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'})}</b><br>${now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})} LOCAL`;
+
+  async function load(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if(res && res.value) state = JSON.parse(res.value);
+    }catch(e){ /* defaults stand */ }
+    document.getElementById('riskFree').value = state.riskFree;
+    document.getElementById('avgCorr').value = state.avgCorr;
+    render();
+  }
+  async function save(){
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
+    catch(e){ console.error('save failed', e); }
+  }
+
+  function uid(){ return 'id' + Math.random().toString(36).slice(2,9); }
+  function fmtMoney(n){
+    const sign = n < 0 ? '-' : '';
+    return sign + '$' + Math.abs(n).toLocaleString('en-US', {maximumFractionDigits:0});
+  }
+  function escapeHtml(str){
+    const d = document.createElement('div'); d.textContent = str; return d.innerHTML;
+  }
+  function riskBand(volPct){
+    if(volPct < 10) return 'low';
+    if(volPct < 22) return 'med';
+    return 'high';
+  }
+
+  const DONUT_COLORS = ['#2C5561','#2F8F5B','#D98F2B','#C1443C','#6C7FA6','#8A5FA6','#4C9AA0'];
+
+  function compute(){
+    const totalValue = state.holdings.reduce((s,h)=>s+h.value,0);
+    const weights = state.holdings.map(h=> totalValue>0 ? h.value/totalValue : 0);
+    const expReturn = state.holdings.reduce((s,h,i)=> s + weights[i]*(h.ret/100), 0);
+
+    // Blended-correlation portfolio variance approximation
+    const rho = state.avgCorr;
+    const sumWSigma = state.holdings.reduce((s,h,i)=> s + weights[i]*(h.vol/100), 0);
+    const sumW2Sigma2 = state.holdings.reduce((s,h,i)=> s + Math.pow(weights[i]*(h.vol/100),2), 0);
+    const portVarianceProxy = rho * Math.pow(sumWSigma,2) + (1-rho) * sumW2Sigma2;
+    const portVol = Math.sqrt(Math.max(portVarianceProxy,0));
+
+    const rf = state.riskFree/100;
+    const sharpe = portVol > 0 ? (expReturn - rf) / portVol : 0;
+
+    const z95 = 1.645, z99 = 2.326;
+    const var95 = totalValue * z95 * portVol;
+    const var99 = totalValue * z99 * portVol;
+
+    // simple per-asset marginal risk contribution proxy: weight * own vol
+    const rawContrib = state.holdings.map((h,i)=> weights[i]*(h.vol/100));
+    const contribSum = rawContrib.reduce((a,b)=>a+b,0) || 1;
+    const contribPct = rawContrib.map(c => c/contribSum);
+
+    return { totalValue, weights, expReturn, portVol, sharpe, var95, var99, contribPct };
+  }
+
+  function render(){
+    const r = compute();
+
+    document.getElementById('mValue').textContent = fmtMoney(r.totalValue);
+    document.getElementById('mReturn').textContent = (r.expReturn*100).toFixed(1) + '%';
+    document.getElementById('mVol').textContent = (r.portVol*100).toFixed(1) + '%';
+    document.getElementById('mSharpe').textContent = r.sharpe.toFixed(2);
+    document.getElementById('mVar95').textContent = fmtMoney(r.var95);
+    document.getElementById('mVar99').textContent = fmtMoney(r.var99);
+
+    // Gauge: map vol 0-40%+ to angle 0-180deg
+    const volPct = r.portVol*100;
+    const clamped = Math.max(0, Math.min(40, volPct));
+    const angle = (clamped/40)*180 - 90; // -90 (low) to +90 (high)
+    document.getElementById('needle').setAttribute('transform', `rotate(${angle} 100 100)`);
+    const band = state.holdings.length ? riskBand(volPct) : null;
+    const label = document.getElementById('gaugeScoreLabel');
+    if(!state.holdings.length){
+      label.textContent = '— NO DATA —';
+      label.style.color = 'var(--muted)';
+    } else {
+      label.textContent = volPct.toFixed(1) + '% VOL — ' + band.toUpperCase() + ' RISK';
+      label.style.color = band==='low' ? 'var(--low)' : band==='med' ? 'var(--med)' : 'var(--high)';
+    }
+
+    // Holdings table
+    const body = document.getElementById('holdingsBody');
+    const empty = document.getElementById('holdingsEmpty');
+    body.innerHTML = '';
+    if(state.holdings.length === 0){
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      state.holdings.forEach(h=>{
+        const band = riskBand(h.vol);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="name-cell">${escapeHtml(h.name)}</td>
+          <td>${fmtMoney(h.value)}</td>
+          <td>${h.ret.toFixed(1)}%</td>
+          <td>${h.vol.toFixed(1)}%</td>
+          <td><span class="risk-tag ${band}">${band}</span></td>
+          <td><button class="row-del" data-id="${h.id}" title="Remove">✕</button></td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    // Risk contribution bars
+    const contribBody = document.getElementById('contribBody');
+    if(state.holdings.length === 0){
+      contribBody.innerHTML = '<div class="empty-note">Add holdings to see risk contribution.</div>';
+    } else {
+      contribBody.innerHTML = '';
+      state.holdings.forEach((h,i)=>{
+        const pct = (r.contribPct[i]*100).toFixed(1);
+        const row = document.createElement('div');
+        row.className = 'contrib-row';
+        row.innerHTML = `
+          <div class="contrib-top"><span>${escapeHtml(h.name)}</span><span>${pct}%</span></div>
+          <div class="contrib-track"><div class="contrib-fill" style="width:${pct}%; background:${DONUT_COLORS[i % DONUT_COLORS.length]};"></div></div>
+        `;
+        contribBody.appendChild(row);
+      });
+    }
+
+    // Donut allocation chart
+    const donut = document.getElementById('donutChart');
+    const legend = document.getElementById('donutLegend');
+    if(state.holdings.length === 0){
+      donut.style.background = 'conic-gradient(var(--grid-line) 0 100%)';
+      legend.innerHTML = 'No holdings yet.';
+    } else {
+      let acc = 0;
+      const segments = [];
+      state.holdings.forEach((h,i)=>{
+        const pct = r.weights[i]*100;
+        const start = acc;
+        const end = acc + pct;
+        segments.push(`${DONUT_COLORS[i % DONUT_COLORS.length]} ${start}% ${end}%`);
+        acc = end;
+      });
+      donut.style.background = `conic-gradient(${segments.join(',')})`;
+      legend.innerHTML = state.holdings.map((h,i)=>`
+        <div class="legend-item">
+          <span class="swatch" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]};"></span>
+          <span>${escapeHtml(h.name)} — ${(r.weights[i]*100).toFixed(1)}%</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  document.getElementById('holdingForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const name = document.getElementById('hName').value.trim();
+    const value = parseFloat(document.getElementById('hValue').value);
+    const ret = parseFloat(document.getElementById('hReturn').value);
+    const vol = parseFloat(document.getElementById('hVol').value);
+    if(!name || isNaN(value) || value < 0 || isNaN(ret) || isNaN(vol) || vol < 0) return;
+    state.holdings.push({ id: uid(), name, value, ret, vol });
+    this.reset();
+    save(); render();
+  });
+
+  document.getElementById('holdingsBody').addEventListener('click', function(e){
+    if(e.target.classList.contains('row-del')){
+      const id = e.target.getAttribute('data-id');
+      state.holdings = state.holdings.filter(h=>h.id !== id);
+      save(); render();
+    }
+  });
+
+  document.getElementById('settingsForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const rf = parseFloat(document.getElementById('riskFree').value);
+    const corr = parseFloat(document.getElementById('avgCorr').value);
+    if(!isNaN(rf)) state.riskFree = rf;
+    if(!isNaN(corr)) state.avgCorr = Math.max(0, Math.min(1, corr));
+    save(); render();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
